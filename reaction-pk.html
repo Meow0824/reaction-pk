@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>反應速度 PK 挑戰</title>
+<style>
+  :root {
+    --bg:       #1a1a2e;
+    --bg2:      #16213e;
+    --bg3:      #0f0f23;
+    --pink:     #FFB5B5;
+    --pink-dim: #cc8e8e;
+    --pink-deep:#7a3a3a;
+    --pink-card:#241c1c;
+    --text:     #f5e6e6;
+    --muted:    #b89898;
+    --border:   rgba(255,181,181,0.15);
+    --border-s: rgba(255,181,181,0.30);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    padding: 1.5rem 1rem 3rem;
+  }
+  h1 {
+    font-size: 22px; font-weight: 500; color: var(--pink);
+    text-align: center; margin-bottom: 6px;
+  }
+  .subtitle {
+    font-size: 13px; color: var(--muted); text-align: center; margin-bottom: 1.5rem;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+
+  /* ── cards ── */
+  .card {
+    background: var(--pink-card);
+    border: 0.5px solid var(--border-s);
+    border-radius: 14px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .lbl { font-size: 11px; color: var(--muted); margin-bottom: 5px; letter-spacing:.04em; }
+
+  /* ── inputs ── */
+  input[type=text], textarea {
+    width: 100%; padding: 9px 12px;
+    background: var(--bg2); border: 0.5px solid var(--border-s);
+    border-radius: 8px; color: var(--text); font-size: 14px;
+    outline: none; margin-bottom: 10px;
+    font-family: inherit;
+  }
+  input[type=text]::placeholder, textarea::placeholder { color: var(--muted); }
+  input[type=text]:focus, textarea:focus { border-color: var(--pink); }
+
+  /* ── buttons ── */
+  .btn {
+    width: 100%; padding: 10px; border-radius: 8px;
+    background: var(--pink); border: none; color: var(--pink-deep);
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    transition: opacity .15s, transform .1s;
+  }
+  .btn:hover { opacity: .9; }
+  .btn:active { transform: scale(.98); }
+  .btn-outline {
+    background: transparent; border: 0.5px solid var(--border-s);
+    color: var(--pink); margin-top: 8px;
+  }
+  .btn-outline:hover { background: rgba(255,181,181,.07); }
+
+  /* ── tags ── */
+  .tag { display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px; }
+  .tag-pink  { background:rgba(255,181,181,.12); color:var(--pink); border:0.5px solid var(--border-s); }
+  .tag-green { background:#1a3a1a; color:#7adf7a; border:0.5px solid #3a7a3a; }
+  .tag-red   { background:#3a1a1a; color:#ff8a8a; border:0.5px solid #7a3a3a; }
+  .tag-amber { background:#3a2a0a; color:#ffcc66; border:0.5px solid #7a5a1a; }
+
+  /* ── stat row ── */
+  .stat-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-bottom:1rem; }
+  .stat-card { background:var(--bg2); border-radius:8px; padding:.75rem; text-align:center; border:0.5px solid var(--border); }
+  .stat-val  { font-size:22px; font-weight:500; color:var(--pink); }
+  .stat-lbl  { font-size:11px; color:var(--muted); margin-bottom:3px; }
+
+  /* ── arena ── */
+  #arena {
+    width:100%; height:190px; border-radius:14px;
+    border:0.5px solid var(--border-s);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    cursor:pointer; margin:1rem 0;
+    background:var(--bg2); transition:background .1s;
+    user-select:none;
+  }
+  #arena.waiting { background:#1a3a6e; border-color:#3a6abf; }
+  #arena.go      { background:#1a4a1a; border-color:#3a9a3a; }
+  #arena.early   { background:#4a1a1a; border-color:#9a3a3a; }
+  #arena-text { font-size:24px; font-weight:500; color:var(--pink); }
+  #arena.waiting #arena-text,
+  #arena.go #arena-text,
+  #arena.early #arena-text { color:#fff; }
+  #arena-sub { font-size:13px; color:var(--muted); margin-top:6px; }
+  #arena.waiting #arena-sub,
+  #arena.go #arena-sub,
+  #arena.early #arena-sub { color:rgba(255,255,255,.65); }
+
+  /* ── dots ── */
+  .dots { display:flex; gap:6px; justify-content:center; margin:1rem 0; }
+  .dot  { width:10px; height:10px; border-radius:50%; background:rgba(255,181,181,.12); border:0.5px solid var(--border-s); }
+  .dot.done    { background:#3a9a3a; border-color:#3a9a3a; }
+  .dot.current { background:#3a6abf; border-color:#3a6abf; }
+
+  /* ── code display ── */
+  .code-disp {
+    font-family: monospace; font-size:16px; font-weight:500;
+    letter-spacing:3px; text-align:center;
+    padding:1.1rem; background:var(--bg3); border-radius:8px;
+    color:var(--pink); border:0.5px solid var(--border-s);
+    word-break:break-all; line-height:1.9; margin:.75rem 0;
+  }
+
+  /* ── result rows ── */
+  .rrow {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:7px 0; border-bottom:0.5px solid var(--border); font-size:14px;
+  }
+  .rrow span:first-child { color:var(--muted); }
+
+  /* ── divider ── */
+  hr { border:none; border-top:0.5px solid var(--border); margin:1rem 0; }
+
+  /* ── locked banner ── */
+  .locked-banner {
+    background:rgba(255,181,181,.07); border:0.5px solid var(--border-s);
+    border-radius:10px; padding:1rem; margin-bottom:1rem;
+  }
+  .locked-title { font-weight:500; color:var(--pink); margin-bottom:4px; }
+  .locked-sub   { font-size:13px; color:var(--muted); margin-bottom:.75rem; }
+
+  /* ── pages ── */
+  .page { display:none; }
+  .page.active { display:block; }
+
+  /* ── host panel ── */
+  .host-slots { display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
+  .slot-row { display:flex; gap:8px; align-items:center; }
+  .slot-num { font-size:12px; color:var(--muted); min-width:18px; }
+  .slot-row input { margin-bottom:0; flex:1; font-size:12px; padding:7px 10px; }
+
+  .team-block { margin-bottom:1.25rem; }
+  .team-name-row {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:.5rem;
+  }
+  .team-avg-big { font-size:28px; font-weight:500; color:var(--pink); }
+
+  .member-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:6px 0; border-bottom:0.5px solid var(--border); font-size:13px;
+  }
+  .member-row span:first-child { color:var(--muted); }
+
+  .pk-result {
+    display:grid; grid-template-columns:1fr auto 1fr; gap:12px;
+    align-items:center; text-align:center; margin-top:1rem;
+  }
+  .pk-team-name { font-size:13px; color:var(--muted); margin-bottom:4px; }
+  .pk-score { font-size:32px; font-weight:500; color:var(--pink); }
+  .pk-vs { font-size:18px; color:var(--muted); font-weight:500; }
+  .pk-winner { font-size:11px; }
+
+  /* ── top bar ── */
+  .top-toggle {
+    display:flex; gap:8px; margin-bottom:1.25rem;
+  }
+  .toggle-btn {
+    flex:1; padding:8px; border-radius:8px; font-size:13px; cursor:pointer;
+    background:transparent; border:0.5px solid var(--border-s); color:var(--muted);
+    transition:all .15s;
+  }
+  .toggle-btn.active { background:rgba(255,181,181,.12); color:var(--pink); border-color:var(--border-s); }
+
+  @media(max-width:480px) {
+    .stat-val { font-size:18px; }
+    #arena { height:160px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>反應速度 PK 挑戰</h1>
+  <p class="subtitle">5 回合平均，看誰反應最快！</p>
+
+  <!-- ── top toggle ── -->
+  <div class="top-toggle">
+    <button class="toggle-btn active" onclick="switchMode('player')" id="tab-player">玩家模式</button>
+    <button class="toggle-btn" onclick="switchMode('host')" id="tab-host">主辦方計分</button>
+  </div>
+
+  <!-- ════════════════════════════════
+       PLAYER SECTION
+  ════════════════════════════════ -->
+  <div id="player-section">
+
+    <!-- locked notice -->
+    <div id="locked-notice" class="locked-banner" style="display:none;">
+      <div class="locked-title">你已經完成挑戰了！</div>
+      <div class="locked-sub">每個裝置只能挑戰一次。請把驗證碼回報給主辦方。</div>
+      <div class="code-disp" id="locked-code"></div>
+      <button class="btn" onclick="copyLocked()">複製驗證碼</button>
+    </div>
+
+    <!-- page: login -->
+    <div id="page-login" class="page active">
+      <div class="card">
+        <div class="lbl">你的名字</div>
+        <input type="text" id="inp-name" placeholder="例如：貓貓大人" />
+        <div class="lbl">所屬隊伍名稱</div>
+        <input type="text" id="inp-team" placeholder="例如：貓貓神團" />
+        <button class="btn" onclick="startGame()">開始挑戰</button>
+      </div>
+    </div>
+
+    <!-- page: game -->
+    <div id="page-game" class="page">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;">
+        <div>
+          <span id="disp-name" style="font-weight:500;"></span>
+          <span id="disp-team" class="tag tag-pink" style="margin-left:6px;"></span>
+        </div>
+        <span style="font-size:13px;color:var(--muted);">第 <span id="round-num">1</span> / 5 回合</span>
+      </div>
+      <div class="dots" id="round-dots"></div>
+      <div id="arena" onclick="handleClick()">
+        <div id="arena-text">點擊開始</div>
+        <div id="arena-sub">準備好了嗎？</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-card"><div class="stat-lbl">本回合</div><div class="stat-val" id="stat-last">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">最佳</div><div class="stat-val" id="stat-best">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">目前平均</div><div class="stat-val" id="stat-avg">—</div></div>
+      </div>
+    </div>
+
+    <!-- page: result -->
+    <div id="page-result" class="page">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <div>
+            <span id="res-name" style="font-weight:500;font-size:16px;"></span>
+            <span id="res-team" class="tag tag-pink" style="margin-left:6px;"></span>
+          </div>
+          <span class="tag tag-green">完成！</span>
+        </div>
+        <div class="stat-row">
+          <div class="stat-card"><div class="stat-lbl">平均成績</div><div class="stat-val" style="font-size:26px;" id="res-avg">—</div></div>
+          <div class="stat-card"><div class="stat-lbl">最佳</div><div class="stat-val" id="res-best">—</div></div>
+          <div class="stat-card"><div class="stat-lbl">最差</div><div class="stat-val" id="res-worst">—</div></div>
+        </div>
+        <div id="res-rounds"></div>
+        <hr>
+        <div class="lbl" style="margin-bottom:4px;">你的驗證碼（回報給主辦方）</div>
+        <div class="code-disp" id="res-code"></div>
+        <button class="btn" onclick="copyCode()">複製驗證碼</button>
+      </div>
+      <p style="font-size:12px;color:var(--muted);text-align:center;">此裝置已鎖定，無法再次挑戰。</p>
+    </div>
+
+  </div><!-- /player-section -->
+
+  <!-- ════════════════════════════════
+       HOST SECTION
+  ════════════════════════════════ -->
+  <div id="host-section" style="display:none;">
+    <div class="card">
+      <div class="lbl" style="margin-bottom:10px;">貼入 8 位玩家的驗證碼（每格一個）</div>
+      <div class="host-slots" id="host-slots"></div>
+      <button class="btn" onclick="calcTeams()">計算成績 &amp; 對比</button>
+    </div>
+    <div id="host-output"></div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+const TOTAL  = 5;
+const SECRET = 'PKGAME2024';
+const LS_KEY = 'reaction_pk_v4';
+
+let playerName='', playerTeam='', rounds=[], gameState='idle', startTime=0, timer=null;
+
+/* ── init ── */
+(function init() {
+  buildHostSlots();
+  const saved = localStorage.getItem(LS_KEY);
+  if (saved) {
+    document.getElementById('locked-notice').style.display = 'block';
+    document.getElementById('page-login').classList.remove('active');
+    document.getElementById('locked-code').textContent = formatCode(saved);
+  }
+})();
+
+/* ── mode toggle ── */
+function switchMode(m) {
+  document.getElementById('player-section').style.display = m==='player' ? 'block' : 'none';
+  document.getElementById('host-section').style.display   = m==='host'   ? 'block' : 'none';
+  document.getElementById('tab-player').classList.toggle('active', m==='player');
+  document.getElementById('tab-host').classList.toggle('active', m==='host');
+}
+
+/* ── player: start ── */
+function startGame() {
+  const n = document.getElementById('inp-name').value.trim();
+  const t = document.getElementById('inp-team').value.trim();
+  if (!n) { alert('請輸入名字'); return; }
+  if (!t) { alert('請輸入隊伍名稱'); return; }
+  if (localStorage.getItem(LS_KEY)) { alert('此裝置已完成挑戰，無法重複參加。'); return; }
+  playerName=n; playerTeam=t; rounds=[];
+  document.getElementById('disp-name').textContent = n;
+  document.getElementById('disp-team').textContent = t;
+  updateDots(); updateStats();
+  showPage('game');
+  setArena('idle','點擊開始','準備好了嗎？');
+}
+
+/* ── player: arena ── */
+function handleClick() {
+  if (gameState==='idle') {
+    setArena('waiting','等待...','變綠時立刻點擊！');
+    const delay = 1500 + Math.random()*3000;
+    timer = setTimeout(() => { startTime=performance.now(); setArena('go','點擊！','快！'); }, delay);
+  } else if (gameState==='waiting') {
+    clearTimeout(timer);
+    setArena('early','太早了！','等變綠再點擊');
+    setTimeout(() => setArena('idle','再試一次','點擊繼續'), 1500);
+  } else if (gameState==='go') {
+    const ms = Math.round(performance.now()-startTime);
+    rounds.push(ms);
+    updateDots(); updateStats();
+    if (rounds.length >= TOTAL) setTimeout(showResult, 600);
+    else setArena('idle', ms+' ms', '點擊繼續下一回合');
+  }
+}
+
+function setArena(state,text,sub) {
+  const a = document.getElementById('arena');
+  a.className = state;
+  document.getElementById('arena-text').textContent = text;
+  document.getElementById('arena-sub').textContent  = sub;
+  gameState = state;
+}
+
+function updateDots() {
+  document.getElementById('round-dots').innerHTML =
+    Array.from({length:TOTAL},(_,i) => {
+      const cls = i<rounds.length ? 'done' : (i===rounds.length ? 'current' : '');
+      return `<div class="dot ${cls}"></div>`;
+    }).join('');
+  document.getElementById('round-num').textContent = Math.min(rounds.length+1, TOTAL);
+}
+
+function updateStats() {
+  document.getElementById('stat-last').textContent = rounds.length ? rounds[rounds.length-1]+' ms' : '—';
+  if (rounds.length) {
+    document.getElementById('stat-best').textContent = Math.min(...rounds)+' ms';
+    document.getElementById('stat-avg').textContent  = Math.round(rounds.reduce((a,b)=>a+b,0)/rounds.length)+' ms';
+  } else {
+    document.getElementById('stat-best').textContent = '—';
+    document.getElementById('stat-avg').textContent  = '—';
+  }
+}
+
+/* ── player: result ── */
+function showResult() {
+  const avg   = Math.round(rounds.reduce((a,b)=>a+b,0)/TOTAL);
+  const best  = Math.min(...rounds);
+  const worst = Math.max(...rounds);
+  document.getElementById('res-name').textContent  = playerName;
+  document.getElementById('res-team').textContent  = playerTeam;
+  document.getElementById('res-avg').textContent   = avg+' ms';
+  document.getElementById('res-best').textContent  = best+' ms';
+  document.getElementById('res-worst').textContent = worst+' ms';
+  document.getElementById('res-rounds').innerHTML  =
+    rounds.map((r,i) =>
+      `<div class="rrow"><span>第 ${i+1} 回合</span><span>${r} ms${r===best?' <span class="tag tag-green" style="font-size:10px;margin-left:4px;">最佳</span>':''}</span></div>`
+    ).join('');
+  const rawCode = genCode(playerName, playerTeam, rounds, Date.now());
+  localStorage.setItem(LS_KEY, rawCode);
+  document.getElementById('res-code').textContent = formatCode(rawCode);
+  showPage('result');
+}
+
+/* ── code ── */
+function genCode(name, team, r, ts) {
+  const payload = { n:name, t:team, r:r, ts:ts };
+  const json    = JSON.stringify(payload);
+  const b64     = btoa(unescape(encodeURIComponent(json)));
+  return b64 + '.' + checksum(json+SECRET);
+}
+
+function checksum(str) {
+  let h1=0xdeadbeef, h2=0x41c6ce57;
+  for (let i=0;i<str.length;i++) {
+    const c=str.charCodeAt(i);
+    h1=Math.imul(h1^c,2654435761);
+    h2=Math.imul(h2^c,1597334677);
+  }
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+  return Math.abs((4294967296*(2097151&h2)+(h1>>>0))).toString(36).toUpperCase().padStart(6,'0').slice(0,6);
+}
+
+function formatCode(raw) {
+  const clean = raw.replace(/\s/g,'');
+  const dot   = clean.lastIndexOf('.');
+  if (dot<0) return raw;
+  const b64   = clean.slice(0,dot);
+  const chk   = clean.slice(dot+1);
+  return b64.match(/.{1,4}/g).join('-') + '  ' + chk;
+}
+
+function decodeRaw(raw) {
+  const clean = raw.replace(/\s+/g,'').replace(/-/g,'');
+  const dot   = clean.lastIndexOf('.');
+  if (dot<0) throw new Error('格式錯誤');
+  const b64   = clean.slice(0,dot);
+  const chk   = clean.slice(dot+1);
+  const json  = decodeURIComponent(escape(atob(b64)));
+  const data  = JSON.parse(json);
+  const valid = chk.toUpperCase() === checksum(json+SECRET);
+  return { data, valid };
+}
+
+/* ── copy helpers ── */
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '已複製！';
+    setTimeout(() => btn.textContent=orig, 2000);
+  });
+}
+function copyCode() {
+  copyText(localStorage.getItem(LS_KEY)||'', document.querySelector('#page-result .btn'));
+}
+function copyLocked() {
+  copyText(localStorage.getItem(LS_KEY)||'', document.querySelector('#locked-notice .btn'));
+}
+
+/* ── pages ── */
+function showPage(id) {
+  document.querySelectorAll('#player-section .page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+}
+
+/* ══════════════════════════════════
+   HOST: build slots
+══════════════════════════════════ */
+function buildHostSlots() {
+  const el = document.getElementById('host-slots');
+  el.innerHTML = Array.from({length:8},(_,i) =>
+    `<div class="slot-row">
+      <span class="slot-num">${i+1}</span>
+      <input type="text" placeholder="貼上驗證碼…" id="slot-${i}" autocomplete="off" spellcheck="false" />
+    </div>`
+  ).join('');
+}
+
+/* ══════════════════════════════════
+   HOST: calc & display
+══════════════════════════════════ */
+function calcTeams() {
+  const results = [];
+  const errors  = [];
+
+  for (let i=0;i<8;i++) {
+    const raw = document.getElementById('slot-'+i).value.trim();
+    if (!raw) continue;
+    try {
+      const { data, valid } = decodeRaw(raw);
+      const avg = Math.round(data.r.reduce((a,b)=>a+b,0)/data.r.length);
+      results.push({ name:data.n, team:data.t, avg, best:Math.min(...data.r), rounds:data.r, valid, ts:data.ts });
+    } catch(e) {
+      errors.push(`第 ${i+1} 格驗證碼無法解讀`);
+    }
+  }
+
+  if (results.length === 0) {
+    document.getElementById('host-output').innerHTML =
+      `<div class="card" style="color:var(--muted);font-size:14px;text-align:center;">請貼入至少一個驗證碼</div>`;
+    return;
+  }
+
+  /* group by team */
+  const teams = {};
+  results.forEach(r => {
+    if (!teams[r.team]) teams[r.team] = [];
+    teams[r.team].push(r);
+  });
+
+  const teamNames   = Object.keys(teams);
+  const teamAvgs    = teamNames.map(tn => {
+    const members = teams[tn];
+    return Math.round(members.reduce((a,m)=>a+m.avg,0)/members.length);
+  });
+
+  /* build HTML */
+  let html = '';
+
+  /* per-team blocks */
+  teamNames.forEach((tn, ti) => {
+    const members  = teams[tn];
+    const teamAvg  = teamAvgs[ti];
+    const sortedM  = [...members].sort((a,b)=>a.avg-b.avg);
+    const bestMember = sortedM[0];
+
+    html += `
+    <div class="card team-block">
+      <div class="team-name-row">
+        <div>
+          <span class="tag tag-pink" style="font-size:13px;padding:3px 10px;">${tn}</span>
+          <span style="font-size:11px;color:var(--muted);margin-left:8px;">${members.length} 人</span>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:var(--muted);">隊伍平均</div>
+          <div class="team-avg-big">${teamAvg} ms</div>
+        </div>
+      </div>
+      <hr>
+      ${members.map(m => `
+        <div class="member-row">
+          <span>${m.name}${!m.valid ? ' <span class="tag tag-amber" style="font-size:10px;">驗證異常</span>' : ''}</span>
+          <span style="font-weight:500;color:var(--pink);">${m.avg} ms
+            ${m.avg===bestMember.avg ? '<span class="tag tag-green" style="font-size:10px;margin-left:4px;">隊伍最佳</span>' : ''}
+          </span>
+        </div>
+        <div style="display:flex;gap:6px;padding:4px 0 8px;flex-wrap:wrap;">
+          ${m.rounds.map((r,ri) => `<span style="font-size:11px;color:var(--muted);">R${ri+1}: ${r}ms</span>`).join('')}
+        </div>
+      `).join('')}
+    </div>`;
+  });
+
+  /* PK result */
+  if (teamNames.length >= 2) {
+    const t0 = teamNames[0], t1 = teamNames[1];
+    const a0 = teamAvgs[0],  a1 = teamAvgs[1];
+    const diff = Math.abs(a0-a1);
+    const winnerIdx = a0 <= a1 ? 0 : 1;
+    const winner    = teamNames[winnerIdx];
+
+    html += `
+    <div class="card">
+      <div class="lbl" style="text-align:center;margin-bottom:1rem;">對戰結果</div>
+      <div class="pk-result">
+        <div>
+          <div class="pk-team-name">${t0}</div>
+          <div class="pk-score" style="${winnerIdx===0 ? '' : 'opacity:.5;'}">${a0} ms</div>
+          ${winnerIdx===0 ? '<div class="pk-winner"><span class="tag tag-green">勝利</span></div>' : ''}
+        </div>
+        <div class="pk-vs">VS</div>
+        <div>
+          <div class="pk-team-name">${t1}</div>
+          <div class="pk-score" style="${winnerIdx===1 ? '' : 'opacity:.5;'}">${a1} ms</div>
+          ${winnerIdx===1 ? '<div class="pk-winner"><span class="tag tag-green">勝利</span></div>' : ''}
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:1rem;font-size:13px;color:var(--muted);">
+        ${winner} 快了 ${diff} ms
+      </div>
+    </div>`;
+  }
+
+  /* errors */
+  if (errors.length) {
+    html += `<div class="card"><div class="lbl">注意</div>${errors.map(e=>`<div style="font-size:13px;color:#ff8a8a;">${e}</div>`).join('')}</div>`;
+  }
+
+  document.getElementById('host-output').innerHTML = html;
+}
+</script>
+</body>
+</html>
